@@ -20,22 +20,30 @@ class DataExport
     Vendor
   ).map(&:freeze).freeze
 
-  def initialize(organization, type)
+  def initialize(organization, type, filter_conditions = {})
     @current_organization = organization
     @type = type
+    @filter_conditions = filter_conditions
   end
 
   def as_csv
     return nil unless current_organization.present? && type.present?
     return nil unless SUPPORTED_TYPES.include? type
 
-    data_to_export = model_class.for_csv_export(current_organization)
     generate_csv(data_to_export)
   end
 
   private
 
-  attr_reader :current_organization, :type
+  attr_reader :current_organization, :type, :filter_conditions
+
+  def headers
+    @headers ||= model_class.csv_export_headers
+  end
+
+  def model_class
+    @model_class ||= type.constantize
+  end
 
   def generate_csv(data)
     CSV.generate(headers: true) do |csv|
@@ -47,11 +55,24 @@ class DataExport
     end
   end
 
-  def headers
-    @headers ||= model_class.csv_export_headers
+  def data_to_export
+    data = model_class.for_csv_export(current_organization)
+    data = filter_data(data) if filter_conditions.present?
+    data
   end
 
-  def model_class
-    @model_class ||= type.constantize
+  def filter_data(data)
+    filtered_data = data
+    filter_conditions.each do |field, value|
+      next unless respond_to?("filter_by_#{field}", true)
+
+      filtered_data = send("filter_by_#{field}", data, value)
+    end
+    filtered_data
+  end
+
+  def filter_by_date_range(data, value)
+    start_date, end_date = value.split(" - ").map { |d| Date.strptime(d, "%m/%d/%Y") }
+    data.where(created_at: (start_date.beginning_of_day)..(end_date.end_of_day))
   end
 end
