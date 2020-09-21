@@ -5,18 +5,19 @@ require "csv"
 # the classes for which this can work.
 class DataExport
   SUPPORTED_TYPES = %w(
+    Adjustment
+    BarcodeItem
+    DiaperDriveParticipant
+    Distribution
     Donation
     DonationSite
+    Item
     Partner
     Purchase
-    Distribution
-    DiaperDriveParticipant
-    Vendor
+    Request
     StorageLocation
-    Adjustment
     Transfer
-    Item
-    BarcodeItem
+    Vendor
   ).map(&:freeze).freeze
 
   def initialize(organization, type)
@@ -28,20 +29,15 @@ class DataExport
     return nil unless current_organization.present? && type.present?
     return nil unless SUPPORTED_TYPES.include? type
 
-    data_to_export = type.constantize.for_csv_export(current_organization)
-    headers = type.constantize.csv_export_headers
-    generate_csv(data_to_export, headers)
-  end
-
-  def self.supported_types
-    SUPPORTED_TYPES
+    data_to_export = model_class.for_csv_export(current_organization)
+    generate_csv(data_to_export)
   end
 
   private
 
   attr_reader :current_organization, :type
 
-  def generate_csv(data, headers)
+  def generate_csv(data)
     CSV.generate(headers: true) do |csv|
       csv << headers
 
@@ -49,5 +45,13 @@ class DataExport
         csv << element.csv_export_attributes
       end
     end
+  end
+
+  def headers
+    @headers ||= model_class.csv_export_headers
+  end
+
+  def model_class
+    @model_class ||= type.constantize
   end
 end

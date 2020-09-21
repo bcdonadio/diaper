@@ -5,7 +5,7 @@ class DataExportsController < ApplicationController
   def csv
     type = params[:type]
 
-    if DataExport.supported_types.include? type
+    if DataExport::SUPPORTED_TYPES.include? type
       respond_to do |format|
         format.csv { send_data data(type), filename: "#{type}-#{Time.zone.today}.csv" }
       end
