@@ -36,7 +36,7 @@ module Exports
     end
 
     def grouped_items
-      Item.where(id: request_item_ids).group_by(&:id)
+      @grouped_items ||= Item.where(id: request_item_ids).group_by(&:id)
     end
 
     def request_item_ids
