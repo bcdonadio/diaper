@@ -37,28 +37,24 @@ class DataExport
 
   attr_reader :current_organization, :type, :filter_conditions
 
-  def headers
-    @headers ||= model_class.csv_export_headers
-  end
-
   def model_class
     @model_class ||= type.constantize
   end
 
   def generate_csv(data)
     CSV.generate(headers: true) do |csv|
-      csv << headers
-
-      data.each do |element|
-        csv << element.csv_export_attributes
+      model_class.csv_export(data).each do |row|
+        csv << row
       end
     end
   end
 
   def data_to_export
-    data = model_class.for_csv_export(current_organization)
-    data = filter_data(data) if filter_conditions.present?
-    data
+    @data_to_export ||= begin
+      data = model_class.for_csv_export(current_organization)
+      data = filter_data(data) if filter_conditions.present?
+      data
+    end
   end
 
   def filter_data(data)

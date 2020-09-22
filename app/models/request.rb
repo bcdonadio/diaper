@@ -14,7 +14,10 @@
 #
 
 class Request < ApplicationRecord
+  include Exportable
+
   class MismatchedItemIdsError < StandardError; end
+
   belongs_to :partner
   belongs_to :organization
   belongs_to :distribution, optional: true
@@ -63,15 +66,11 @@ class Request < ApplicationRecord
     request
   end
 
-  def self.csv_export_headers
-    ["Date", "Requestor", "Status"].freeze
+  def self.csv_export(requests)
+    Exports::ExportRequestService.new(requests).call
   end
 
-  def csv_export_attributes
-    [
-      created_at.strftime("%m/%d/%Y"),
-      partner.name,
-      status.humanize
-    ]
+  def item_ids
+    request_items.map { |item| item['item_id'] }
   end
 end
